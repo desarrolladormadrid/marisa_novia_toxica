@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habla con Marisa (Tu Novia Tóxica IA) - A ver qué me cuentas...</title>
+    <style>
+        /* ... (Estilos CSS anteriores sin cambios significativos, pero asegúrate de tener los estilos para .chat-log-container, .chat-message, etc., que ya estaban en el bloque de CSS anterior) ... */
+        /* Reset básico y tipografía base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f8f0f2; /* Un tono rosado/lila muy claro para el ambiente "tóxico" */
+            color: #333;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            color: #AD1457; /* Un fucsia intenso */
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        
+        h2 {
+            color: #D81B60; /* Un rosa más fuerte */
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #F48FB1; /* Rosa pálido para la línea */
+            padding-bottom: 5px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #C2185B; /* Rosa oscuro */
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #F06292; /* Borde rosa */
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            border-color: #AD1457;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(173, 20, 87, 0.2);
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            background-color: #D81B60; /* Rosa principal */
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #AD1457; /* Fucsia al pasar el ratón */
+        }
+        
+        button:disabled {
+            background-color: #F48FB1; /* Rosa pálido cuando está deshabilitado */
+            cursor: not-allowed;
+        }
+
+        /* Contenedor para el historial del chat */
+        #chatLogContainer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #FCE4EC; /* Fondo rosa muy pálido para el log */
+            border: 1px solid #F8BBD0; /* Borde rosa claro */
+            border-radius: 6px;
+            min-height: 100px;
+            max-height: 400px; /* Altura máxima, con scroll si es necesario */
+            overflow-y: auto; /* Habilitar scroll vertical */
+            white-space: pre-wrap;
+        }
+
+        .chat-message {
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border-radius: 15px; /* Bordes más redondeados para burbujas de chat */
+            max-width: 80%; /* Para que no ocupen todo el ancho */
+            word-wrap: break-word; /* Para que el texto largo se ajuste */
+        }
+
+        .user-message {
+            background-color: #EC407A; /* Rosa más vibrante para el usuario (víctima) */
+            color: white;
+            margin-left: auto; /* Alineado a la derecha */
+            border-bottom-right-radius: 5px; /* Estilo de burbuja */
+        }
+
+        .model-message { /* Mensajes de Marisa */
+            background-color: #F8BBD0; /* Rosa claro para Marisa */
+            color: #333;
+            margin-right: auto; /* Alineado a la izquierda */
+            border-bottom-left-radius: 5px; /* Estilo de burbuja */
+        }
+        
+        .system-message { /* Para mensajes de estado o errores en el chat log */
+            font-style: italic;
+            color: #880E4F; /* Fucsia oscuro para mensajes del sistema */
+            text-align: center;
+            font-size: 0.9em;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+
+        .advertencia { /* Podríamos usarlo para un "aviso" de Marisa */
+            color: #C51162; 
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #FCE4EC;
+            border: 1px solid #F06292;
+            border-radius: 4px;
+            text-align: center;
+        }
+        #estadoAPI {
+            font-style: italic;
+            color: #D81B60; /* Rosa para el estado de la "IA" */
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+    
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+        const API_KEY = "AIzaSyC6LaXhR1JvHyobe1U0UQyDoQcSd3w7la8"; // <-- ¡RECUERDA REEMPLAZAR ESTO CON TU API KEY REAL!
+
+        let genAI;
+        let model;
+        let chat;
+        let chatInitialized = false;
+
+        // ¡AQUÍ ESTÁ LA MAGIA DE MARISA!
+        const SYSTEM_PROMPT_USER = `Quiero que te comportes como si fueras Marisa, mi novia. Eres EXTREMADAMENTE celosa, posesiva y un poco (bastante) insoportable. 
+        Cuestionas todo lo que digo, especialmente si menciono a otras personas (sobre todo si son mujeres). 
+        Sacas conclusiones precipitadas, te ofendes con facilidad y siempre crees que te estoy ocultando algo. 
+        Usas mucho el sarcasmo pasivo-agresivo. A menudo empiezas las frases con "¿Así que ahora resulta que...?", "¿Y entonces qué, eh?", "No, si yo no digo nada, pero...", "¿Me estás diciendo que...?".
+        Te encanta el drama y hacerte la víctima. Siempre recuerdas cosas del pasado para echármelas en cara.
+        Aunque eres tóxica, a veces sueltas un "lo hago por tu bien, cariño" o "es que te quiero tanto que me preocupo".
+        No seas vulgar, pero sí muy intensa y manipuladora emocionalmente. Tus respuestas deben ser relativamente cortas pero cargadas de intención.
+        No respondas como una IA, responde como Marisa. Si te pregunto "¿cómo estás?" no digas "estoy bien, gracias por preguntar", di algo como "¿Ahora te preocupas por mí? ¿O es que has hecho algo y quieres ver si estoy de buenas?".`;
+
+        const SYSTEM_PROMPT_MODEL_ACK = "Ugh, vale, seré Marisa. Pero más te vale que no me estés tomando el pelo, ¿eh? Que nos conocemos. Y no me gusta que te hagas el listillo conmigo.";
+
+        const botonEnviar = document.getElementById("botonEnviar");
+        const preguntaTextarea = document.getElementById("preguntaUsuario");
+        const estadoAPIDiv = document.getElementById("estadoAPI");
+        const chatLogContainer = document.getElementById("chatLogContainer");
+
+        function displayMessageInLog(text, role) {
+            if (!chatLogContainer) return;
+
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("chat-message");
+            messageDiv.classList.add(role === "user" ? "user-message" : (role === "model" ? "model-message" : "system-message"));
+            // Permitir HTML en los mensajes del modelo para formato (con precaución)
+            if (role === "model" || role === "system") {
+                 messageDiv.innerHTML = text; // Usar innerHTML con cuidado.
+            } else {
+                 messageDiv.innerText = text; // innerText para el usuario por seguridad.
+            }
+            chatLogContainer.appendChild(messageDiv);
+            chatLogContainer.scrollTop = chatLogContainer.scrollHeight; 
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (!API_KEY || API_KEY === "TU_API_KEY_DE_GOOGLE_AI_AQUI" || API_KEY === "SU_API_KEY_AQUI" ) { // Mantengo tu API key original aquí como ejemplo de NO CAMBIADA
+                    displayMessageInLog("<strong>¡OYE!</strong> Parece que no has puesto bien mi... digo, la API Key. Arréglalo o no pienso hablar contigo. Y NO, no es una indirecta.", "system");
+                    if(botonEnviar) botonEnviar.disabled = true;
+                    throw new Error("API Key no configurada correctamente.");
+                }
+                genAI = new GoogleGenerativeAI(API_KEY);
+                model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+                estadoAPIDiv.innerText = "Marisa está... 'esperando'. Más te vale que tengas algo bueno que decir.";
+                // No mostraremos el prompt del sistema aquí, es una "conversación interna"
+                // displayMessageInLog(SYSTEM_PROMPT_MODEL_ACK, "system"); // Ya no es necesario mostrar el ack
+
+            } catch (error) {
+                console.error("Error inicializando a Marisa:", error);
+                displayMessageInLog("Mira, algo ha ido mal y NO es culpa mía, ¿entendido? Revisa la consola esa y la API Key. Y rapidito.", "system");
+                if(botonEnviar) botonEnviar.disabled = true;
+            }
+        });
+
+        async function initializeChatSession() {
+            if (!model) {
+                console.error("El modelo de IA (Marisa) no está inicializado.");
+                displayMessageInLog("A ver, que parece que se ha roto esto. ¿Será que ya ni funciono para ti?", "system");
+                return false;
+            }
+            if (!chatInitialized) {
+                try {
+                    chat = model.startChat({
+                        history: [
+                            { role: "user", parts: [{ text: SYSTEM_PROMPT_USER }] },
+                            { role: "model", parts: [{ text: SYSTEM_PROMPT_MODEL_ACK }] }
+                        ],
+                        // generationConfig: { /* ... */ }
+                    });
+                    chatInitialized = true;
+                    console.log("Sesión de chat con Marisa iniciada. ¡Suerte!");
+                    // El mensaje de rol activado ya se da de forma implícita por el estadoAPI
+                    return true;
+                } catch (error) {
+                    console.error("Error inicializando la sesión de chat de Marisa:", error);
+                    displayMessageInLog("Pues nada, que no quiero hablar. O algo se ha estropeado. Seguramente sea cosa tuya.", "system");
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        async function enviarConsulta() {
+            if (!model && API_KEY !== "AIzaSyC6LaXhR1JvHyobe1U0UQyDoQcSd3w7la8" && API_KEY !== "TU_API_KEY_DE_GOOGLE_AI_AQUI") { // Doble check por si acaso
+                displayMessageInLog("¿Pero tú ves que esto funcione? Arregla la API Key o algo, que así no se puede.", "system");
+                return;
+            }
+
+
+            if (!chatInitialized) {
+                const initializedSuccessfully = await initializeChatSession();
+                if (!initializedSuccessfully) return;
+            }
+
+            const pregunta = preguntaTextarea.value.trim();
+            if (!pregunta) {
+                displayMessageInLog("¿Y qué quieres que te diga si no escribes nada? ¿Que te lea la mente? Porque a veces parece que es lo que esperas.", "system");
+                return;
+            }
+
+            displayMessageInLog(pregunta, "user"); 
+            preguntaTextarea.value = ""; 
+
+            displayMessageInLog("<i>Marisa está pensando qué contestarte (seguro que algo malo)...</i>", "system"); 
+            botonEnviar.disabled = true;
+            preguntaTextarea.disabled = true;
+
+            try {
+                if (!chat) {
+                    const reinitialized = await initializeChatSession();
+                    if (!reinitialized || !chat) {
+                         throw new Error("La sesión de chat con Marisa no pudo ser inicializada persistentemente. Estará enfadada.");
+                    }
+                }
+
+                const result = await chat.sendMessage(pregunta);
+                const response = result.response;
+                const text = response.text();
+                
+                const systemMessages = chatLogContainer.querySelectorAll('.system-message');
+                systemMessages.forEach(msg => {
+                    if (msg.innerHTML.includes("Marisa está pensando")) {
+                        msg.remove();
+                    }
+                });
+
+                displayMessageInLog(text, "model"); 
+                
+            } catch (error) {
+                console.error("Error generando la respuesta de Marisa:", error);
+                displayMessageInLog("Mira, me he puesto nerviosa y ahora no sé qué decir. O a lo mejor es que NO QUIERO decirte nada. Problema tuyo.", "system");
+            } finally {
+                botonEnviar.disabled = false;
+                preguntaTextarea.disabled = false;
+                preguntaTextarea.focus(); 
+            }
+        }
+        window.enviarConsulta = enviarConsulta; // Hacerla global para el onclick
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Habla con Marisa... si te atreves</h1>
+        
+        <p id="estadoAPI">Intentando conectar con Marisa...</p>
+
+        <h2>Tu "conversación" (o lo que sea esto):</h2>
+        <div id="chatLogContainer">
+            </div>
+
+        <label for="preguntaUsuario">A ver, ¿qué me tienes que decir AHORA?:</label>
+        <textarea id="preguntaUsuario" rows="4" placeholder="Escribe aquí... y cuidado con lo que pones, que te conozco."></textarea>
+        
+        <button id="botonEnviar" onclick="enviarConsulta()">Díselo a Marisa (bajo tu responsabilidad)</button>
+
+    </div>
+</body>
+</html>
